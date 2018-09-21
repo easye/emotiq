@@ -52,8 +52,9 @@ THE SOFTWARE.
   (let* ((aid  (or (ac:get-property obj 'aid)
                    (setf (ac:get-property obj 'aid) (gen-uuid-int))))
          (ret  (make-actor-return-addr
-                :node (node-pkey (or (current-node)
-                                     *my-node*))
+                :node (node-pkey (gossip:get-node
+                                  (or (current-node)
+                                     *my-node*)))
                 :aid  aid)))
     (associate-aid-with-actor aid obj)
     (sdle-store:backend-store-object backend ret stream)))

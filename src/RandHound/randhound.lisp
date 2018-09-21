@@ -31,8 +31,8 @@ THE SOFTWARE.
 (in-package :randhound)
 ;; (pushnew :rh-testing *features*)
 
-(defun get-node (pkey-id)
-  (gossip::lookup-node pkey-id))
+(defun get-node (uid)
+  (gossip:get-node uid))
 
 ;; ---------------------------------------------------------------
 

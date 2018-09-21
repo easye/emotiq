@@ -67,7 +67,9 @@
 
 (defvar *ll-application-handler* nil "Set to a function to be called when the API methods reach their target.")
 
-
+(defun get-node (pkey-id)
+  "return the cosi-simgen:node for a pkey"
+  (gossip::lookup-node pkey-id))
 
 ;; ------------------------------------------------------------------------------
 ;; Generic handling for expected authenticated messages. Check for

@@ -53,6 +53,8 @@
    #:dissolve-graph
    #:memoize-node
 
+   #:get-node
+
    #:shutdown-gossip-server)
   (:export
    #:local-real-nodes))
