@@ -151,6 +151,8 @@
    #:get-keypairs
    #:local-machine ;; aka gossip's idea of its configuration
 
+   #:get-pkeys
+
    #:settings
    #:setting))
 

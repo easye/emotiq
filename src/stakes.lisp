@@ -35,6 +35,14 @@
   (let ((pathname (merge-pathnames *keypairs-filename* root)))
     (read-pairs-database pathname)))
 
+(defun get-pkeys (&key (root (emotiq/fs:etc/)))
+  "return a list of pkeys that is used by randhound - the order (whatever it is) must remain consistent ;
+for testing, we simply return all of the pkeys in the config"
+  (let ((keypairs (get-keypairs :root root)))
+    (mapcar #'(lambda (lis)
+                (first (first lis)))
+            keypairs)))
+
 (defun get-nth-key (n
                     &key (root (emotiq/fs:etc/)))
   "Return the keying triple from the network configuration for Nth id"

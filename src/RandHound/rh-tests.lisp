@@ -36,6 +36,8 @@
       (cosi-simgen::set-nodes (mapcar 'list pkeys stakes))
       (let ((leader (first nodes))
             (beacon (second nodes)))
+        (emotiq:note "leader = ~S" leader)
+        (emotiq:note "beacon = ~S" beacon)
         (loop :for node :in nodes
            :doing
              (cosi-simgen:with-current-node node
@@ -52,6 +54,7 @@
           (prove:ok (cosi-simgen:node-pkey node) "Current node has a pkey…"))
 
         (cosi-simgen:with-current-node beacon
+          (emotiq:note "current-node = ~S" (current-node))
           (randhound:start-randhound-round))))))
 
 (prove:finalize)

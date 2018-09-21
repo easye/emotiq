@@ -1084,8 +1084,16 @@ dropped on the floor.
       (kvs:remove-key! *nodes* (vec-repr:bev-vec (uid localnode))) ; delete temp node
       )))
 
-(defun lookup-node (uid)
+;; <KLUDGE> - all uid's should be public-keys, but gossip was originally designed with knowledge of
+;; the internals of public-keys
+
+(defmethod lookup-node ((uid vec-repr:bev))
   (kvs:lookup-key *nodes* (vec-repr:bev-vec uid)))
+
+(defmethod lookup-node ((uid pbc-interface:public-key))
+  (lookup-node (pbc-interface::public-key-val uid)))
+
+;; </KLUDGE>
 
 (defgeneric send-msg (msg destuid srcuid)
   (:documentation "Sends msg to destuid from srcuid. Srcuid can be nil, but generally should

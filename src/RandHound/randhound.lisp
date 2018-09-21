@@ -31,6 +31,9 @@ THE SOFTWARE.
 (in-package :randhound)
 ;; (pushnew :rh-testing *features*)
 
+(defun get-node (pkey-id)
+  (gossip::lookup-node pkey-id))
+
 ;; ---------------------------------------------------------------
 
 (defvar *randhound-pairing*  :curve-ar160) ;; fast 160-bit symmetric pairing
@@ -98,7 +101,8 @@ THE SOFTWARE.
 ;; FOR SIM... Get associations between Node PKeys and their Short PKeys
 
 ;; V+-- This is the table that should be in consistent sort order
-(defvar *node-table* '(1 2)) 
+;; don't need bits, just an ordered list / vector, ordering doesn't change
+(defvar *node-table* nil) 
 
 (defun get-witness-short-keys ()
   ;; NOTE: It is important that the list of witness keys be kept in
@@ -106,13 +110,13 @@ THE SOFTWARE.
   ;; copy of this list. But unless the ordering is consistent between
   ;; them, the election outcomes will be seen as different at each
   ;; node.
+  (init-ordered-table)
   (map 'list
-       (lambda (node)
-         (list (node-pkey node)
-               (node-short-pkey node)))
-       (node-bitmap-table)
-       #+nil
-       cosi-simgen:*node-bit-tbl*)) ;; <-- This is the table that should be in consistent sort order
+       (lambda (node-pkey)
+         (let ((node (get-node node-pkey)))
+           (list node-pkey
+                 (node-short-pkey node))))
+       *node-table*))
                               
 ;; ------------------------------------------------------------------
 
@@ -232,11 +236,13 @@ THE SOFTWARE.
   (clear-counters)
   
   (let* ((my-pkey-id (current-node))
-         (me (gossip::lookup-node my-pkey-id)))  ;; a cosi-simgen::node
+         (me (get-node my-pkey-id)))  ;; a cosi-simgen::node
 
     (when (pbc= my-pkey-id (cosi-simgen::node-current-beacon me))
       (let* ((witnesses  (get-witness-short-keys))
-             (session    (hash/256 *local-epoch* (uuid:make-v1-uuid) *beacon*))
+             (local-epoch (cosi-simgen::node-local-epoch me))
+             (beacon (cosi-simgen::node-current-beacon me))
+             (session    (hash/256 local-epoch (uuid:make-v1-uuid) beacon))
              (grpids     (mapcar (lambda (wit)
                                    ;; prepend random lottery ticket to (pkeyLong, pkeyShort)
                                    (cons (int (hash/256 session wit)) wit))
@@ -247,20 +253,20 @@ THE SOFTWARE.
                                        :key 'first)))
              (twit       (min 1600 (length sorted)))  ;; total witness nodes
              (tsqrt      (min   40 (isqrt twit)))     ;; their square root
-             (swits      (subseq sorted 0 twit))      ;; select out no more than 1600 nodes
+             (selected-witnesses      (subseq sorted 0 twit))      ;; select out no more than 1600 nodes
              (ngrp       (if (< tsqrt 6)              ;; nbr nodes per group
                              twit
                            tsqrt))
-             (grps       (nreverse (um:group swits ngrp)))) ;; actual groups
+             (groups       (nreverse (um:group selected-witnesses ngrp)))) ;; actual groups
 
-        (when (> (length grps) 1)
+        (when (> (length groups) 1)
           ;; absorb short group into last group if fewer than 6 members
-          (let ((short-grp (first grps)))
+          (let ((short-grp (first groups)))
             (when (< (length short-grp) 6)
-              (setf grps (nconc short-grp (second grps) (cdddr grps))))))
+              (setf groups (nconc short-grp (second groups) (cdddr groups))))))
 
         (tally :start)
-        (broadcast+me (make-signed-start-message session *local-epoch* me grps))
+        (broadcast+me (make-signed-start-message session local-epoch me groups))
         ))))
 
 ;; ----------------------------------------------------------------------------------
@@ -268,7 +274,7 @@ THE SOFTWARE.
 ;; ----------------------------------------------------------------------------------
 
 (defun make-signed-message (msg)
-  (append msg (list :sig (pbc:sign-hash msg (node-skey (current-node))))))
+  (append msg (list :sig (pbc:sign-hash msg (node-skey (get-node (current-node)))))))
 
 
 (defun make-start-message-skeleton (session epoch pkey groups)
@@ -783,3 +789,34 @@ THE SOFTWARE.
               )))))))
   
 ;; ------------------------------------------------------------------
+
+(defun pt-test ()
+  (let ((cosi-simgen::*testing-randhound* t))
+    (emotiq:note "Starting main loop")
+    (init-ordered-table)
+    (let ((node-table randhound::*node-table*))
+      (emotiq:note "node-bitmap-table ~S" node-table)
+      (let ((nodes (coerce (randhound:nodes) 'list)))
+        ;; (setf nodes (subseq nodes 0 6))
+        ;; Should already have happened..
+        #+(or)
+        (cosi-simgen::set-nodes (mapcar 'list pkeys stakes))
+        (let ((leader (first nodes))
+              (beacon (second nodes)))
+          (emotiq:note "leader = ~S" leader)
+          (emotiq:note "beacon = ~S" beacon)
+          (loop :for node-pkey :in nodes
+                :doing
+                (let ((node (gossip::lookup-node node-pkey)))
+                  (cosi-simgen:with-current-node node
+                    (setf *leader* leader
+                          *beacon* beacon
+                          *local-epoch* pi
+                          *election-calls* nil))))
+
+          (let ((node (cosi-simgen:current-node)))
+            (emotiq:note "current node pkey ~S" node))
+
+          (cosi-simgen:with-current-node beacon
+            (emotiq:note "beacon-node = ~S" (current-node))
+            (randhound:start-randhound-round)))))))
