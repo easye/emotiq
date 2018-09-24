@@ -126,10 +126,13 @@ THE SOFTWARE.
 (defvar *current-node*  nil)  ;; for sim = current node running
 
 (defun current-node ()
+  "always returns a cosi-simgen::node"
+  (assert (eq (type-of *current-node*) 'cosi-simgen::node))
   *current-node*)
 
 (defmacro with-current-node (node &body body)
   `(let ((*current-node* ,node))
+     (assert (eq (type-of *current-node*) 'cosi-simgen::node))
      ,@body))
 
 (define-symbol-macro *blockchain*     (node-blockchain     *current-node*))

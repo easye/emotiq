@@ -1,3 +1,5 @@
+(declare (optimize (debug 3)))
+
 ;; rh-server.lisp -- Randhound Server
 ;;
 ;; DM/Emotiq  03/18
@@ -34,9 +36,12 @@ THE SOFTWARE.
 (defun get-node (uid)
   (gossip:get-node uid))
 
+(defmethod get-pkey ((n cosi-simgen::node))
+  (cosi-simgen::node-pkey n))
+
 ;; ---------------------------------------------------------------
 
-(defvar *randhound-pairing*  :curve-ar160) ;; fast 160-bit symmetric pairing
+(defvar *randhound-pairing*  :pairing-ar160) ;; fast 160-bit symmetric pairing
 
 (defun max-byz-fails (ngrp)
   ;; offer up answers in one place so all are on same footing...
@@ -162,7 +167,7 @@ THE SOFTWARE.
 
 (defun broadcast+me (msg)
   ;; make sure our own Node gets the message too
-  (gossip:singlecast msg (cosi-simgen::current-node)
+  (gossip:singlecast msg (get-pkey (cosi-simgen::current-node))
                      :graphID nil) ;; force send to ourselves
   ;; this really should go to everyone
   (gossip:broadcast msg
@@ -178,8 +183,8 @@ THE SOFTWARE.
       (gossip:establish-broadcast-group pkeys
                                         :graphID graphID)))
 
-(defun broadcast-grp+me (msg &key graphID)
-  (gossip:singlecast msg :graphID nil)
+(defun broadcast-grp+me (msg me &key graphID)
+  (gossip:singlecast msg me :graphID nil)
   (gossip:broadcast  msg :graphID graphID))
 
 ;; ------------------------------------------------------------------
@@ -235,8 +240,8 @@ THE SOFTWARE.
   (setf *rh-start* (get-universal-time)) ;; record start time for timings
   (clear-counters)
   
-  (let* ((my-pkey-id (current-node))
-         (me (get-node my-pkey-id)))  ;; a cosi-simgen::node
+  (let* ((me (current-node))
+         (my-pkey-id (get-pkey me)))
 
     (when (pbc= my-pkey-id (cosi-simgen::node-current-beacon me))
       (let* ((witnesses  (get-witness-short-keys))
@@ -266,7 +271,7 @@ THE SOFTWARE.
               (setf groups (nconc short-grp (second groups) (cdddr groups))))))
 
         (tally :start)
-        (broadcast+me (make-signed-start-message session local-epoch me groups))
+        (broadcast+me (make-signed-start-message session local-epoch my-pkey-id groups))
         ))))
 
 ;; ----------------------------------------------------------------------------------
@@ -274,7 +279,7 @@ THE SOFTWARE.
 ;; ----------------------------------------------------------------------------------
 
 (defun make-signed-message (msg)
-  (append msg (list :sig (pbc:sign-hash msg (node-skey (get-node (current-node)))))))
+  (append msg (list :sig (pbc:sign-hash msg (node-skey (current-node))))))
 
 
 (defun make-start-message-skeleton (session epoch pkey groups)
@@ -397,7 +402,7 @@ THE SOFTWARE.
              (msg (make-signed-subgroup-commit-message session me commit)))
 
         (tally :subgroup-commit)
-        (broadcast-grp+me msg :graphID graph)
+        (broadcast-grp+me msg me :graphID graph)
         ))))
 
 ;; ----------------------------------------------------------------------------
@@ -491,14 +496,16 @@ THE SOFTWARE.
                         (validate-commitment commit my-group rschkv))))  ;; valid collection of proofs?
       
       (when decr-share
-        (push (list from decr-share) my-commits)
-        (when (= (1+ ncomms) barrier-thr)
-          (tally :subgroup-decrypted-share)
-          ;; send my decrypted share to all group members
-          (broadcast-grp+me (make-signed-decr-share-message
-                             session me my-commits)
-                            :graphID my-graph)))
-      )))
+        (let ((me (node-pkey (cosi-simgen::current-node))))
+          (push (list from decr-share) my-commits)
+          (when (= (1+ ncomms) barrier-thr)
+            (tally :subgroup-decrypted-share)
+            ;; send my decrypted share to all group members
+            (broadcast-grp+me (make-signed-decr-share-message
+                               session me my-commits)
+                              me
+                              :graphID my-graph)))
+        ))))
 
 ;; ----------------------------------------------------------------------------
 ;; STAGE 4 -- Accumulate decrypted shares until we can perform
@@ -801,13 +808,14 @@ THE SOFTWARE.
         ;; Should already have happened..
         #+(or)
         (cosi-simgen::set-nodes (mapcar 'list pkeys stakes))
-        (let ((leader (first nodes))
-              (beacon (second nodes)))
+        (let* ((leader (first nodes))
+               (beacon (second nodes))
+               (beacon-node (get-node beacon)))
           (emotiq:note "leader = ~S" leader)
           (emotiq:note "beacon = ~S" beacon)
-          (loop :for node-pkey :in nodes
+          (loop :for pkey :in nodes
                 :doing
-                (let ((node (gossip::lookup-node node-pkey)))
+                (let ((node (gossip::lookup-node pkey)))
                   (cosi-simgen:with-current-node node
                     (setf *leader* leader
                           *beacon* beacon
@@ -817,6 +825,6 @@ THE SOFTWARE.
           (let ((node (cosi-simgen:current-node)))
             (emotiq:note "current node pkey ~S" node))
 
-          (cosi-simgen:with-current-node beacon
+          (cosi-simgen:with-current-node beacon-node
             (emotiq:note "beacon-node = ~S" (current-node))
             (randhound:start-randhound-round)))))))
