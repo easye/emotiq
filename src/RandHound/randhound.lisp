@@ -162,7 +162,7 @@ THE SOFTWARE.
 
 (defun broadcast+me (msg)
   ;; make sure our own Node gets the message too
-  (gossip:singlecast msg
+  (gossip:singlecast msg (cosi-simgen::current-node)
                      :graphID nil) ;; force send to ourselves
   ;; this really should go to everyone
   (gossip:broadcast msg
