@@ -26,6 +26,7 @@
 (defun main (&key etc-and-wallets how-started-message?)
   "Main loop for Emotiq daemon"
   (emotiq/random:init-random) ;; after calling this, (RANDOM 100) will return the same sequence of pseudo-random numbers on each test run 
+  (core-crypto:startup)
   (when etc-and-wallets
     (setf (symbol-function 'emotiq/fs:etc/)
           (lambda () (pathname etc-and-wallets))))
@@ -60,7 +61,7 @@
   (unintern 'cl-user::*performing-binary-build*) ;; if building binary,
   (setq *production* t)  ;; used by EMOTIQ:PRODUCTION-P in Crypto
   (message-running-state "from command line")
-  (core-crypto:startup)
+  ;(core-crypto:startup)
   (actors:install-actor-system)
   (main))
 
