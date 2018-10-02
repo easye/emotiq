@@ -798,6 +798,7 @@ THE SOFTWARE.
 ;; ------------------------------------------------------------------
 
 (defun pt-test ()
+  (emotiq:main)
   (let ((cosi-simgen::*testing-randhound* t))
     (emotiq:note "Starting main loop")
     (init-ordered-table)
