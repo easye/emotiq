@@ -242,12 +242,13 @@ based on their relative stake"
               *election-calls*   nil) ;; reset list of callers for new election
         
         (pr "~A got :hold-an-election ~A" (short-id node) n)
-        (pr "election results ~A (stake = ~A)"
+        #+nil(pr "election results ~A (stake = ~A)"
                      (if (pbc= me winner) " *ME* " " not me ")
                      (stake-for winner))
-        (pr "winner ~A me=~A"
-                     (short-id winner)
-                     (short-id me))
+        (when (pbc= me winner)
+          (pr "winner ~A me=~A"
+              (short-id winner)
+              (short-id me)))
 
         (when (pbc= me new-beacon)
           ;; launch a beacon

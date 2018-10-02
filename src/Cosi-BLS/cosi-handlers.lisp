@@ -243,7 +243,7 @@ THE SOFTWARE.
      (lambda (&rest msg)
        (unless (find (node-pkey node) *dead-node-pkeys*
                      :test 'pbc=)
-         (pr "Cosi MSG: Node ~A ~A"
+         #+nil(pr "Cosi MSG: Node ~A ~A"
              (short-id node)
              (mapcar 'short-id msg))
          (um:dcase msg

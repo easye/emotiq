@@ -27,6 +27,7 @@
   "Main loop for Emotiq daemon"
   (emotiq/random:init-random) ;; after calling this, (RANDOM 100) will return the same sequence of pseudo-random numbers on each test run 
   (core-crypto:startup)
+  (setf gossip::*debug-level* nil)
   (when etc-and-wallets
     (setf (symbol-function 'emotiq/fs:etc/)
           (lambda () (pathname etc-and-wallets))))
