@@ -241,7 +241,7 @@ based on their relative stake"
               *local-epoch*      n  ;; unlikely to repeat from election to election
               *election-calls*   nil) ;; reset list of callers for new election
         
-        (pr "~A got :hold-an-election ~A" (short-id node) n)
+        #+nil(pr "~A got :hold-an-election ~A" (short-id node) n)
         #+nil(pr "election results ~A (stake = ~A)"
                      (if (pbc= me winner) " *ME* " " not me ")
                      (stake-for winner))
