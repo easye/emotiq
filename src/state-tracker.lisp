@@ -27,15 +27,15 @@
 (defun do-tracking (msg)
   (case (first msg) 
     (:reset
-     (ac:pr "Tracker: :reset - state cleared")
+     #+nil(ac:pr "Tracker: :reset - state cleared")
      (start-tracker))
 
     (:election
-     (ac:pr "Tracker: :election - state cleared")
+     #+nil(ac:pr "Tracker: :election - state cleared")
      (start-tracker))
 
     (:block-finished
-     (ac:pr "Tracker: :block-finished, state = ~A" (query-current-state)))
+     #+nil(ac:pr "Tracker: :block-finished, state = ~A" (query-current-state)))
 
     ((:make-block :commit :prepare)
      ;; tbd
@@ -43,12 +43,12 @@
     
     (:new-leader
      (let ((leader-node (second msg)))
-       (ac:pr "Tracker: New Leader ~A" (stringify-node leader-node))
+       #+nil(ac:pr "Tracker: New Leader ~A" (stringify-node leader-node))
        (setf (system-leader *state*) leader-node)))
     
     (:new-witness
      (let ((witness-node (second msg)))
-       (ac:pr "Tracker: New witness ~A" (stringify-node witness-node))
+       #+nil(ac:pr "Tracker: New witness ~A" (stringify-node witness-node))
        (push witness-node (system-witness-list *state*))))))
 
 (defun query-current-state ()
