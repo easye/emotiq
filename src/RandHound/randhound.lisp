@@ -781,19 +781,19 @@ THE SOFTWARE.
                    :froms (list from)
                    :rand  rand)))
 
-          (when (= (1+ entropy-count) beacon-thr)
-            (let* ((rand  (compute-pairing (get-g1) (rand-entry-rand tentropy))) ;; just to be proper
-                   (seed  (float (/ (int (hash/256 rand))
-                                    #.(ash 1 256))
-                                 1d0)))
-              ;; ------------------------------------------------------------------
-              ;; while debugging, don't run actual elections, uncomment for prodution
-              ;; 
-              ;; (broadcast+me (make-signed-election-message *beacon* seed (node-skey (current-node))))
-              (pr (format nil "~%Hold election from RandHound: ~A" seed))
-              (pr (format nil "~%Elapsed Time = ~A" (- (get-universal-time) *rh-start*)))
-              ;; ------------------------------------------------------------------
-              )))))))
+          (if (= (1+ entropy-count) beacon-thr)
+              (let* ((rand  (compute-pairing (get-g1) (rand-entry-rand tentropy))) ;; just to be proper
+                     (seed  (float (/ (int (hash/256 rand))
+                                      #.(ash 1 256))
+                                   1d0)))
+                ;; ------------------------------------------------------------------
+                ;; while debugging, don't run actual elections, uncomment for prodution
+                ;; 
+                ;; (broadcast+me (make-signed-election-message *beacon* seed (node-skey (current-node))))
+                (pr (format nil "~%Hold election from RandHound: ~A" seed))
+                (pr (format nil "~%Elapsed Time = ~A" (- (get-universal-time) *rh-start*))))
+            (pr (format nil "Randhound threshold failed"))))))))
+                
   
 ;; ------------------------------------------------------------------
 
