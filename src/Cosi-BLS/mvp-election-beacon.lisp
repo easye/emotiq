@@ -290,7 +290,7 @@ based on their relative stake"
 ;; Startup Init Stuff...
 
 (defmethod node-dispatcher ((msg-sym (eql :startup-system)) &key &allow-other-keys)
-  (setup-emergency-call-for-new-election))
+  #+nil(setup-emergency-call-for-new-election))
 
 (defun startup-elections ()
   ;; call this from global init after all housekeeping
