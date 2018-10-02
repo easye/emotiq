@@ -22,7 +22,7 @@
   "returns an actor that can be sent messages about changes to the system state"
   (setf *state* (make-instance 'system-state)
         *tracking-actor* (actors:make-actor #'do-tracking))
-  (ac:pr "running start-tracker ~A ~A" *state* *tracking-actor*))
+  #+nil(ac:pr "running start-tracker ~A ~A" *state* *tracking-actor*))
 
 (defun do-tracking (msg)
   (case (first msg) 
