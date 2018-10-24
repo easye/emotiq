@@ -18,6 +18,8 @@ DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BASE=${DIR}/..
 var=${BASE}/var
 
+MAKE=make
+
 uname_s=$(uname -s)
 case ${uname_s} in
     Linux*)
@@ -27,6 +29,11 @@ case ${uname_s} in
     Darwin*)
         echo Building for macOS
         maketarget=makefile.macos
+        ;;
+    FreeBSD*)
+        echo Building for FreeBSD
+        maketarget=makefile.freebsd
+        MAKE=gmake
         ;;
     *)
         maketarget=makefile.linux
@@ -48,4 +55,4 @@ export CXXFLAGS=-I${inc}
 export LDFLAGS=-L${lib}
 
 cd ${eccintf} && \
-    make --makefile=${maketarget} PREFIX=${prefix}
+    ${MAKE} --makefile=${maketarget} PREFIX=${prefix}

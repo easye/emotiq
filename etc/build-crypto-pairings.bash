@@ -20,6 +20,8 @@ DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BASE=${DIR}/..
 var=${BASE}/var
 
+MAKE=make
+
 uname_s=$(uname -s)
 case ${uname_s} in
     Linux*)
@@ -35,26 +37,43 @@ case ${uname_s} in
         lib_suffix=osx
         maketarget=makefile.macos.static
         ;;
+    FreeBSD*)
+        echo Building for FreeBSD
+        lib_suffix=freebsd
+        maketarget=makefile.freebsd.static
+        MAKE=gmake
+        ;;
     *)
         maketarget=makefile.linux
-        echo Unknown OS \"$(uname_s)\" -- defaulting to Linux Makefile
+        echo Unknown OS \"$(uname_s)\" 
         exit 127
         ;;
 esac
 
-libs_url=https://github.com/emotiq/emotiq-external-libs/releases/download/${EXTERNAL_LIBS_VERSION}/emotiq-external-libs-${lib_suffix}.tgz
-
 mkdir -p ${var}/local
-
-(cd ${var}/local && curl -L ${libs_url} | tar xvfz -)
 
 prefix=${var}/local
 lib=${prefix}/lib
 inc=${prefix}/include
 pbcintf=${BASE}/src/Crypto/Crypto-Libraries/PBC-Intf
 
+external_download_install () {
+    libs_url=https://github.com/emotiq/emotiq-external-libs/releases/download/${EXTERNAL_LIBS_VERSION}/emotiq-external-libs-${lib_suffix}.tgz
+    (cd ${var}/local && curl -L ${libs_url} | tar xvfz -)
+}
+
+if [[
+       -f ${lib}/libgmp.a
+    && -f ${lib}/libpbc.a
+   ]]; then
+    echo Not overwriting existing libaries in ${lib}
+else
+    external_download_install
+fi
+
 # Remove shared libs (we use only statics)
-rm ${lib}/libgmp*.dylib ${lib}/libpbc*.dylib ${lib}/libgmp.so* ${lib}/libpbc.so*
+rm -f ${lib}/libgmp*.dylib ${lib}/libpbc*.dylib ${lib}/libgmp.so* ${lib}/libpbc.so*
+
 
 export CFLAGS=-I${inc}
 export CPPFLAGS=-I${inc}
@@ -62,4 +81,4 @@ export CXXFLAGS=-I${inc}
 export LDFLAGS=-L${lib}
 
 cd ${pbcintf} && \
-    make --makefile=${maketarget} PREFIX=${prefix}
+    ${MAKE} --makefile=${maketarget} PREFIX=${prefix}
