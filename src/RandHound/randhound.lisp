@@ -1,3 +1,4 @@
+#+nil ;; Use PROCLAIM instead of DECLARE for top level
 (declare (optimize (debug 3)))
 
 ;; rh-server.lisp -- Randhound Server
