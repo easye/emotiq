@@ -2173,7 +2173,7 @@ This is C++ style enumerations."
 |#
 
 (defun floor-log2 (n)
-  (declare (fixnum n))
+  (declare ((or fixnum integer) n))
   (1- (integer-length n)))
 
 (defun floor-pwr2 (n)
