@@ -1,0 +1,8 @@
+(ql:quickload :emotiq/config/generate)
+(emotiq/config/generate:ensure-defaults :force t)
+
+[reboot]
+
+(ql:quickload :randhound)
+(emotiq:main)
+(randhound::pt-test)
