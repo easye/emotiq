@@ -1,0 +1,52 @@
+[after config and reboot, I see...]
+
+CL-USER 1 > (ql:quickload :randhound)
+To load "randhound":
+  Load 1 ASDF system:
+    randhound
+; Loading "randhound"
+....
+; Loading /Applications/LispWorks 7.1 (64-bit)/Library/lib/7-1-0-0/load-on-demand/numbers/rand-mt-lw.64xfasl on demand...
+On Lispworks, we cannot add method to DESCRIBE-OBJECT, so you cannot enjoy extended documentations for various namespaces
+com-ral-p NIL
+building-binary-p NIL
+
+"Actor Directory created..." 
+building-binary-p NIL
+
+CRYPTO-LIB-LOADER:LOAD-DLL Load Counter = 1 -- Loading libraries
+CRYPTO-LIB-LOADER:LOAD-DLL Load Counter = 2 -- Skip re-loading libraries
+Connecting Edwards Curves
+CRYPTO-LIB-LOADER:LOAD-DLL Load Counter = 3 -- Skip re-loading libraries
+Connecting PBC lib
+(:RANDHOUND)
+
+CL-USER 2 > (randhound::pt-test)
+
+CRYPTO-LIB-LOADER:LOAD-DLL Load Counter = 4 -- Skip re-loading libraries
+CRYPTO-LIB-LOADER:LOAD-DLL Load Counter = 5 -- Skip re-loading libraries
+Connecting Edwards Curves
+CRYPTO-LIB-LOADER:LOAD-DLL Load Counter = 6 -- Skip re-loading libraries
+Connecting PBC lib
+Running interactively in development
+with args [(/Applications/LispWorks 7.1 (64-bit)/LispWorks (64-bit).app/Contents/MacOS/lispworks-7-1-0-amd64-darwin)]
+NIL
+
+CL-USER 3 > 
+
+[... and in output window ...]
+
+2018-10-28 11:47:06 Not overwriting existing wallet named 'My Wallet'.
+2018-10-28 11:47:06 Starting websocket server on <ws://127.0.0.1:3145>
+2018-10-28 11:47:07 Starting REST server for api 'ROUTE.EMOTIQ/0/0/1' listening on port 3140
+2018-10-28 11:47:07 An index of available services be viewed as <http://127.0.0.1:3140>
+2018-10-28 11:47:08 Starting main loop
+2018-10-28 11:47:08 node-bitmap-table (#<PBC-INTERFACE:PUBLIC-KEY C937055..80A9500> #<PBC-INTERFACE:PUBLIC-KEY A76A914..BA24501> #<PBC-INTERFACE:PUBLIC-KEY E32DB5C..B7A4F00>)
+2018-10-28 11:47:08 leader = #<PBC-INTERFACE:PUBLIC-KEY A76A914..BA24501>
+2018-10-28 11:47:08 beacon = #<PBC-INTERFACE:PUBLIC-KEY E32DB5C..B7A4F00>
+2018-10-28 11:47:08 current node pkey #<COSI-SIMGEN:NODE E32DB5C..B7A4F00>
+2018-10-28 11:47:08 beacon-node = #<COSI-SIMGEN:NODE E32DB5C..B7A4F00>
+2018-10-28 11:47:11 
+Hold election from RandHound: 0.5812696327766224D0
+2018-10-28 11:47:11 
+Elapsed Time = 3

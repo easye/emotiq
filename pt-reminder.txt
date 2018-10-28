@@ -1,0 +1,17 @@
+git clone git@github.com:easye/emotiq.git
+
+rm -rf ~/.cache/common-lisp/*
+
+(ql:quickload :emotiq/config/generate)
+(emotiq/config/generate:ensure-defaults :for-purely-local t :force t)
+
+[reboot]
+
+(ql:quickload :randhound)
+(emotiq:main)
+(randhound::pt-test)
+
+
+gosisp/gossip-startup/configure-local-machine
+pubkeys is ((...)(...)(...))
+mapcar 'first is OK
