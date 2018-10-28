@@ -126,6 +126,7 @@ THE SOFTWARE.
 (defvar *current-node*  nil)  ;; for sim = current node running
 
 (defun current-node ()
+  (assert (not (null *current-node*)))
   *current-node*)
 
 (defmacro with-current-node (node &body body)

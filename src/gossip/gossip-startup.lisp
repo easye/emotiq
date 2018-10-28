@@ -34,10 +34,10 @@
                (unless (skey-for-pkey pkey)
                  (warn (format nil "Pubkey ~a is not present in keypairs database~&~2t~a~%"
                                pkey keypairs))))
-        (mapcar 'first pubkeys))
+        pubkeys)
       ;; make local nodes
       (loop
-         :for pkey :in (mapcar 'first pubkeys)
+         :for pkey :in pubkeys
          :for skey = (skey-for-pkey pkey)
          :doing (if (fboundp 'gossip:cosi-loaded-p) ; cosi will fbind this symbol
                     (make-node ':cosi :pkey pkey :skey skey)
