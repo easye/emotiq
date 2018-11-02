@@ -799,6 +799,7 @@ THE SOFTWARE.
 ;; ------------------------------------------------------------------
 
 (defun pt-test ()
+  (format *standard-output* "pt-test is running main~%")
   (emotiq:main)
   (let ((cosi-simgen::*testing-randhound* t))
     (emotiq:note "Starting main loop")

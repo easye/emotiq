@@ -774,45 +774,48 @@ check that each TXIN and TXOUT is mathematically sound."
 
 ;; ------------------------------
 
-(defun sub-signing (my-node consensus-stage blk seq-id timeout)
-  (declare (ignore my-node))
-  (=lambda (node)
-    (let ((start  (get-universal-time)))
-      #-:LISPWORKS (declare (ignore start))
-      (send node :signing
-            :reply-to        (current-actor)
-            :consensus-stage consensus-stage
-            :blk             blk
-            :seq             seq-id
-            :timeout         timeout)
-      (labels
-          ((!dly ()
+(let ((disabled nil))
+  (defun sub-signing (my-node consensus-stage blk seq-id timeout)
+    (declare (ignore my-node))
+    (unless disabled
+      (=lambda (node)
+        (let ((start  (get-universal-time)))
+          #-:LISPWORKS (declare (ignore start))
+          (send node :signing
+                :reply-to        (current-actor)
+                :consensus-stage consensus-stage
+                :blk             blk
+                :seq             seq-id
+                :timeout         timeout)
+          (labels
+              ((!dly ()
                  #+:LISPWORKS
                  (send *dly-instr* :incr
                        (/ (- (get-universal-time) start)
                           timeout)))
-
+               
                (=return (val)
                  (!dly)
-                 (become 'do-nothing) ;; stop responding to messages
+                 ;(become 'do-nothing) ;; stop responding to messages
+                 (setf disabled t)
                  (=values val)))
-        (recv
-          ((list* :signed sub-seq ans)
-           (if (eql sub-seq seq-id)
-               (=return ans)
-             ;; else
-             (retry-recv)))
-          
-          (_
-           (retry-recv))
-          
-          :TIMEOUT timeout
-          :ON-TIMEOUT
-          (progn
-            (pr "SubSigning timeout waiting for ~A"
-                         (short-id node))
-            (=return nil))
-          )))))
+            (recv
+             ((list* :signed sub-seq ans)
+              (if (eql sub-seq seq-id)
+                  (=return ans)
+                ;; else
+                (retry-recv)))
+             
+             (_
+              (retry-recv))
+             
+             :TIMEOUT timeout
+             :ON-TIMEOUT
+             (progn
+               (pr "SubSigning timeout waiting for ~A"
+                   (short-id node))
+               (=return nil))
+           )))))))
 
 ;; -----------------------------------------------------------
 
@@ -867,75 +870,81 @@ check that each TXIN and TXOUT is mathematically sound."
 
 ;; -------------------------------------------------------------
 
+;; seems that we can't wrap this disabled var in a let - the =defun confuses LW
+
+(defparameter *gossip-signing-disabled* nil)
+
 (=defun gossip-signing (my-node consensus-stage blk blk-hash seq-id timeout)
-  (with-current-node my-node
-    (cond ((and *use-gossip*
-                (pbc= (node-pkey my-node) *leader*))
-           ;; we are leader node, so fire off gossip spray and await answers
-           (let ((bft-thrsh (1- (bft-threshold blk))) ;; adj by 1 since leader is also witness
-                 (start     nil)
-                 (g-bits    0)
-                 (g-sig     nil))
-             
-             (pr "Running Gossip Signing, Node = ~A" (short-id my-node))
-
-             (gossip-neighborcast my-node :signing
-                                  :reply-to        (current-actor)
-                                  :consensus-stage consensus-stage
-                                  :blk             blk
-                                  :seq             seq-id
-                                  :timeout         timeout)
-             (setf start (get-universal-time))
-             
-             (labels
-                 ((=return (val)
-                    (pr "Return from Gossip Signing")
-                    (become 'do-nothing) ;; stop responding to messages
-                    (=values val))
-                  
-                  (=finish ()
-                    (=return (if g-sig
-                                 (list g-sig g-bits)
-                               (list nil 0))))
-
-                  (adj-timeout ()
-                    (let ((stop (get-universal-time)))
-                      (decf timeout (- stop (shiftf start stop))))))
-                  
-               (recv
-                 ((list :signed sub-seq sig bits)
-                  (with-current-node my-node
-                    (cond ((and (eql sub-seq seq-id)
-                                sig
-                                (zerop (logand g-bits bits)) ;; check for no intersection
-                                (pbc:check-hash blk-hash sig (composite-pkey blk bits)))
-                           (pr "Got bits: ~A" (hex-str bits))
-                           (setf g-bits (logior g-bits bits)
-                                 g-sig  (add-sigs sig g-sig))
-                           (if (>= (logcount g-bits) bft-thrsh)
-                               (=finish)
-                             ;; else
-                             (progn
-                               (adj-timeout)
-                               (retry-recv))))
-
-                          (t
-                           (adj-timeout)
-                           (retry-recv)))))
+  (unless *gossip-signing-disabled*
+    (with-current-node my-node
+      (cond ((and *use-gossip*
+                  (pbc= (node-pkey my-node) *leader*))
+             ;; we are leader node, so fire off gossip spray and await answers
+             (let ((bft-thrsh (1- (bft-threshold blk))) ;; adj by 1 since leader is also witness
+                   (start     nil)
+                   (g-bits    0)
+                   (g-sig     nil))
+               
+               (pr "Running Gossip Signing, Node = ~A" (short-id my-node))
+               
+               (gossip-neighborcast my-node :signing
+                                    :reply-to        (current-actor)
+                                    :consensus-stage consensus-stage
+                                    :blk             blk
+                                    :seq             seq-id
+                                    :timeout         timeout)
+               (setf start (get-universal-time))
+               
+               (labels
+                   ((=return (val)
+                      (pr "Return from Gossip Signing")
+                    ;(become 'do-nothing) ;; stop responding to messages
+                      (setf *gossip-signing-disabled* t)
+                      (=values val))
+                    
+                    (=finish ()
+                      (=return (if g-sig
+                                   (list g-sig g-bits)
+                                 (list nil 0))))
+                    
+                    (adj-timeout ()
+                      (let ((stop (get-universal-time)))
+                        (decf timeout (- stop (shiftf start stop))))))
                  
-                 (msg
-                  (pr "Gossip-wait got unknown message: ~A" msg)
-                  (adj-timeout)
-                  (retry-recv))
+                 (recv
+                  ((list :signed sub-seq sig bits)
+                   (with-current-node my-node
+                     (cond ((and (eql sub-seq seq-id)
+                                 sig
+                                 (zerop (logand g-bits bits)) ;; check for no intersection
+                                 (pbc:check-hash blk-hash sig (composite-pkey blk bits)))
+                            (pr "Got bits: ~A" (hex-str bits))
+                            (setf g-bits (logior g-bits bits)
+                                  g-sig  (add-sigs sig g-sig))
+                            (if (>= (logcount g-bits) bft-thrsh)
+                                (=finish)
+                              ;; else
+                              (progn
+                                (adj-timeout)
+                                (retry-recv))))
+
+                           (t
+                            (adj-timeout)
+                            (retry-recv)))))
                  
-                 :TIMEOUT    timeout
-                 :ON-TIMEOUT (=finish)
-                 ))))
+                  (msg
+                   (pr "Gossip-wait got unknown message: ~A" msg)
+                   (adj-timeout)
+                   (retry-recv))
+                 
+                  :TIMEOUT    timeout
+                  :ON-TIMEOUT (=finish)
+                  ))))
   
-          (t 
-           ;; else - not leader don't re-gossip request for signatures
-           (=values nil))
-          )))
+            (t 
+             ;; else - not leader don't re-gossip request for signatures
+             (=values nil))
+            ))))
 
 ;; -------------------------------------------------------
 ;; VALIDATE-COSI-MESSAGE -- this is the one you need to define for
