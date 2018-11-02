@@ -90,11 +90,16 @@
                     logmsg)
       (error () nil))))
 
-(defun log-event-for-pr (cmd &rest items)
-  "Syntactic sugar to play nicely with ac:pr. Note this is NOT an actor function, so don't call actor-only functions from it."
-  (case cmd
-    (:quit (ac:become 'ac::blind-print))
-    (t (apply 'default-logging-function items))))
+(let ((%log-event-state :default))
+  (defun log-event-for-pr (cmd &rest items)
+    "Syntactic sugar to play nicely with ac:pr. Note this is NOT an actor function, so don't call actor-only functions from it."
+    (if (eq :default %log-event-state)
+        (case cmd
+          ;(:quit (ac:become 'ac::blind-print))  ;;;ac:become just swaps out the func pointer and returns the old one (return tossed away here)
+          (:quit
+           (setf &log-event-state :blind-print))
+          (t (apply 'default-logging-function items)))
+      (apply #'ac:blind-print cmd items)))) ;; else blind-print (cmd is ignored)
 
 (defun default-logging-function (logcmd &rest args)
   "Default logger for nodes. Filters using the *log-filter* mechanism."
@@ -178,20 +183,24 @@
   "Saves current *log* to a file. Thread-safe."
    (actor-send *logging-actor* :save-text))
 
-(defun actor-logger-fn (cmd &rest logmsg)
-  "Function that the *logging-actor* runs"
-  (case cmd
-    (:log (vector-push-extend logmsg *log*)
-          ;;; Shunt message to line-oriented log facility
-          ;; First object in logmsg is the timestamp.
-          ;;
-          ;; TODO: use the timestamp directly. It's (car logmsg).
-          (emotiq:note "~{~a~^ ~}" (cdr logmsg)))
-    (:quit (ac:become 'ac:do-nothing))
-          
-    ; :save saves current log to files without modifying it
-    (:save (%save-log :copy-first nil))
-    (:save-text (%save-log :text-only t :copy-first nil))
-    ; :archive pushes current log onto *archived-logs*, then starts a fresh log
-    (:archive (%archive-log))))
+(let ((%logger-state :running))
+  (defun actor-logger-fn (cmd &rest logmsg)
+    "Function that the *logging-actor* runs"
+    (if (eq :running %logger-state)
+        (case cmd
+          (:log (vector-push-extend logmsg *log*)
+           ;;; Shunt message to line-oriented log facility
+           ;; First object in logmsg is the timestamp.
+           ;;
+           ;; TODO: use the timestamp directly. It's (car logmsg).
+           (emotiq:note "~{~a~^ ~}" (cdr logmsg)))
+           ;(:quit (ac:become 'ac:do-nothing))
+          (:quit (setf %logger-state :do-nothing))
+
+          ; :save saves current log to files without modifying it
+          (:save (%save-log :copy-first nil))
+          (:save-text (%save-log :text-only t :copy-first nil))
+          ; :archive pushes current log onto *archived-logs*, then starts a fresh log
+          (:archive (%archive-log)))
+      nil))) ;; else do-nothing
 

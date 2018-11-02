@@ -156,6 +156,8 @@ THE SOFTWARE.
 
    #:schedule-timeout-action
    #:schedule-after
+
+   #:blind-print
    ))
 
 (defpackage #:linda

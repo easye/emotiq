@@ -211,14 +211,61 @@ THE SOFTWARE.
 
 (defun install-actor-printer ()
   (unless (typep *shared-printer-actor* 'actor)
-    (setf *shared-printer-actor*
-          (make-actor
-           (dlambda
-            (:print (&rest things-to-print)
-		    (apply 'blind-print :print things-to-print))
-            
-            (:quit () (become 'blind-print))
-            )))
+
+;;  this looks like it always calls blind-print - why was it written this way?
+
+;; observation : blind-print is a function, *shared-printer-actor* is an actor
+;;  the function can create overlapped printing (in face of full preemption)
+;;  the actor serializes printing so that it does not overlap, it does so by calling
+;;  the function from the actor ; making sure that ONLY one actor
+;;  ever calls the function (the *shared...* actor) ensures that full preemption
+;;  can't gum up the works (this wouldn't be a problem if full preemption was disallowed
+;;  and run-to-completion semantics were obeyed by actors)
+
+;;;     (setf *shared-printer-actor*
+;;;           (make-actor
+;;;            (dlambda
+;;;              (:print (&rest things-to-print)
+;;;               (apply 'blind-print :print things-to-print))
+;;;              
+;;;              (:quit () (become 'blind-print))
+;;;              )))
+
+#|
+
+loosely the above becomes
+  ...
+  (make-actor
+     (lambda (cmd &rest stuff)
+        (case cmd
+          (:print (apply 'blind-print :print stuff))
+          (:quit (become 'blind-print)))))
+  ...
+ 
+which becomes
+  ...
+  (make-actor
+     (lambda (cmd &rest stuff)
+        (case cmd
+          (:print (blind-print :print stuff))
+          (:quit (become 'blind-print)))))
+  ...
+
+using APPLY above will cause CL to check the args
+
+|#
+
+       (setf *shared-printer-actor*
+             (lambda (&rest args)
+               (let ((state :printing))
+                 (make-actor
+                  (if (eq :printing state)
+                      (case (car args)
+                        (:print (blind-print :print (rest args)))
+                        (:quit (setf state nil)))
+                    ;; not :printing
+                    (blind-print :print (rest args)))))))
+                
     (register-actor *shared-printer-actor* :SHARED-PRINTER)))
 
 ;; --------------------------------------------------------

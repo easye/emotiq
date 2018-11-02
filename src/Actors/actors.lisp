@@ -218,10 +218,10 @@ THE SOFTWARE.
 ;; Since these methods are called against (CURRENT-ACTOR) they can
 ;; only be called from within a currently active Actor.
 
-(defmethod become (new-fn)
-  ;; change behavior, returning old. If an Actor didn't call this, an
-  ;; error will result.
-  (shiftf (actor-user-fn (current-actor)) new-fn))
+;;; (defmethod become (new-fn)
+;;;   ;; change behavior, returning old. If an Actor didn't call this, an
+;;;   ;; error will result.
+;;;   (shiftf (actor-user-fn (current-actor)) new-fn))
 
 (defun self-call (&rest msg)
   ;; send a message to myself, immediate execution. If an Actor didn't
