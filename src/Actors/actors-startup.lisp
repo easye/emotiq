@@ -256,6 +256,7 @@ using APPLY above will cause CL to check the args
 |#
 
        (setf *shared-printer-actor*
+          (make-actor
              (lambda (&rest args)
                (let ((state :printing))
                  (make-actor
@@ -264,7 +265,7 @@ using APPLY above will cause CL to check the args
                         (:print (blind-print :print (rest args)))
                         (:quit (setf state nil)))
                     ;; not :printing
-                    (blind-print :print (rest args)))))))
+                    (blind-print :print (rest args))))))))
                 
     (register-actor *shared-printer-actor* :SHARED-PRINTER)))
 
